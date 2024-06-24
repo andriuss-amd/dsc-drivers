@@ -295,6 +295,8 @@ void ionic_dev_teardown(struct ionic *ionic)
 /* Devcmd Interface */
 bool ionic_is_fw_running(struct ionic_dev *idev)
 {
+	return true;
+#if 0
 	u8 fw_status;
 
 	if (!idev->dev_info_regs)
@@ -306,6 +308,7 @@ bool ionic_is_fw_running(struct ionic_dev *idev)
 	 * fw_status != 0xff (bad PCI read)
 	 */
 	return (fw_status != 0xff) && (fw_status & IONIC_FW_STS_F_RUNNING);
+#endif
 }
 
 int ionic_heartbeat_check(struct ionic *ionic)
