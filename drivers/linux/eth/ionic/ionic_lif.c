@@ -3963,6 +3963,7 @@ int ionic_lif_init(struct ionic_lif *lif)
 	struct ionic_lif_init_comp comp;
 	int dbpage_num;
 	int err;
+	struct ionic *ionic = lif->ionic;
 
 	mutex_lock(&lif->ionic->dev_cmd_lock);
 	ionic_dev_cmd_lif_init(idev, lif->index, lif->info_pa);
@@ -4005,6 +4006,20 @@ int ionic_lif_init(struct ionic_lif *lif)
 	err = ionic_lif_adminq_init(lif);
 	if (err)
 		goto err_out_adminq_deinit;
+
+	lif->doorbell_wa = ionic_doorbell_wa(lif->ionic);
+	ionic->wq = alloc_workqueue("%s-wq", WQ_UNBOUND, 0,
+			dev_name(ionic->dev));
+	if (!ionic->wq) {
+		dev_err(ionic->dev, "alloc_workqueue failed");
+		return -ENOMEM;
+	}
+
+	if (ionic_doorbell_wa(ionic))
+		INIT_DELAYED_WORK(&ionic->doorbell_check_dwork,
+			ionic_doorbell_check_dwork);
+
+	ionic_queue_doorbell_check(ionic, IONIC_NAPI_DEADLINE / 2);
 
 	if (lif->ionic->nnqs_per_lif) {
 		err = ionic_lif_notifyq_init(lif);
